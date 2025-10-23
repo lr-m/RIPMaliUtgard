@@ -18,6 +18,8 @@ Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver. 
 
 [[3] 2 Drivers, 1 Exploit](https://luke-m.xyz/translator/p4.md)
 
+[[5] Should be an Easy Port, Right?](https://luke-m.xyz/translator/p6.md)
+
 ## Building/Running
 
 Easiest with an Android NDK with pre-built toolchains, here is `minnka` for example:
