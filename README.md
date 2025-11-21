@@ -4,7 +4,7 @@
 
 </p>
 
-Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver. The bug it leverages was discovered on version *r6p2* of the driver, but it likely impacts later versions.
+Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver (so far only confirmed on ARM Mali-400 MP GPU in the MT6580). The bug it leverages was discovered on version *r6p2* of the driver, but it likely impacts later versions.
 
 **Note:** To use these on other devices/kernels, compatiblity will need to be checked as the bug may be at a different offset to my device, I'll give as much detail about the specifics of the device I wrote the exploit for where possible.
 
@@ -39,6 +39,8 @@ This is an exploit I wrote for the T11 translator, it works by attacking the `sg
 | Property | Value |
 | - | - |
 | Model number | T11/T16 |
+| Chipset | MT6580 |
+| GPU | ARM Mali-400 MP |
 | Android version | 7.0 |
 | Kernel version | 3.18.35 |
 | Build number | `K8321_V1.0.0_20240509` |
@@ -59,6 +61,8 @@ This is an exploit I wrote for the Soyes XS11, the `ion_buffer` method didn't wo
 | Property | Value |
 | - | - |
 | Model number | XS11 |
+| Chipset | MT6580 |
+| GPU | ARM Mali-400 MP |
 | Android version | 6.0 |
 | Kernel version | 3.18.19 |
 | Build number | `A28C_T8_welcome-EN-G_V2_GSL2038_2_20230711` |
@@ -79,6 +83,8 @@ This is basically the same exploit as the XS11, but using `setxattr` for sprayin
 | Property | Value |
 | - | - |
 | Model number | X5 |
+| Chipset | MT6580 |
+| GPU | ARM Mali-400 MP |
 | Android version | 6.0 |
 | Kernel version | 3.18.19 |
 | Build number | `DOOGEE-X5-Android6.0-20170904` |
