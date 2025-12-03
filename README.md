@@ -6,7 +6,16 @@
 
 Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver (so far only confirmed on ARM Mali-400 MP GPU in the MT6580). The bug it leverages was discovered on version *r6p2* of the driver, but it likely impacts later versions.
 
-**Note:** To use these on other devices/kernels, compatiblity will need to be checked as the bug may be at a different offset to my device, I'll give as much detail about the specifics of the device I wrote the exploit for where possible.
+**Known vulnerable devices:**
+- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5)
+- Kirin 620-based devices (Huawei P8 Lite)
+- Any device with a Mali Utgard GPU that uses the ARM driver
+
+**Known safe devices (tested):**
+- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc) - they don't appear to use the ARM driver
+- Amazon Kindle Fire 7th Gen (MT8127) - they also appear to use code different from the ARM code
+
+**Note:** To use these on other devices/kernels, compatiblity will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
 
 ## Blogs
 
@@ -22,10 +31,15 @@ Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver (
 
 ## Building/Running
 
-Easiest with an Android NDK with pre-built toolchains, here is `minnka` for example:
-- `./android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang minnka.c -o minnka`
+Easiest with an Android NDK with pre-built toolchains, here is a `minnka` example for a 32-bit chipset (like the MT6580):
+- `./android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang minnka_t11_translator.c -o minnka -static`
 - `adb push minnka /data/local/tmp`
 - `adb shell /data/local/tmp/minnka`
+
+And `frels` for a 64-bit chipset (like the Kirin 620):
+- `android-ndk-r21e-linux-x86_64/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang frels_huawei_p8_lite.c -o frels -static`
+- `adb push frels /data/local/tmp`
+- `adb shell /data/local/tmp/frels`
 
 
 ## Minnka - T11 Translator
@@ -74,7 +88,8 @@ This is an exploit I wrote for the Soyes XS11, the `ion_buffer` method didn't wo
 
 ## Frels - Doogee X5
 
-This is basically the same exploit as the XS11, but using `setxattr` for spraying fake `mali_alloc` objects. This device also has SELinux, but that is easily bypassed by setting the `enforcing` global in the JOP-chain.
+- *v1*: Very similar exploit to the XS11, but using `setxattr` for spraying fake `mali_alloc` objects. This device also has SELinux, but that is easily bypassed by setting the `enforcing` global in the JOP-chain. Quite unreliable and usually dies when you interact with the phone (if it even gets to root).
+- *v2*: Basically identical exploit to the Huawei P8 Lite, using `add_key` for the spray and fixing the freelist in the JOP-chain, much better reliability than v1.
 
 <img src="images/doogee_x5.png" width="250">
 
@@ -92,5 +107,33 @@ This is basically the same exploit as the XS11, but using `setxattr` for sprayin
 
 ### Example Run
 
-<img src="images/frels_doogee.gif" width="720">
+#### v1
 
+<img src="images/frels_doogee_v1.gif" width="720">
+
+#### v2
+
+<img src="images/frels_doogee_v2.gif" width="720">
+
+## Frels - Huawei P8 Lite
+
+This device runs a 64-bit Kirin 620 which also has the bug. This is basically the same exploit as the XS11, but using `add_key` for spraying fake `mali_alloc` objects, and fixing the freelist in the JOP-chain. This device has SELinux, but that is easily bypassed by setting the `enforcing` global in the JOP-chain.
+
+<img src="images/p8_lite.png" width="150">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model number | ALE-L21 |
+| Chipset | Kirin 620 |
+| GPU | ARM Mali-450 MP4 |
+| Android version | 6.0 |
+| EMUI version | 4.0 |
+| Kernel version | 3.10.86-g6a5da10 |
+| Build number | `ALE-L21C432B560` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/p8_lite.gif" width="720">
