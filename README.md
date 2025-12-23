@@ -146,7 +146,7 @@ I ended up needing another bug, luckily I had a mediatek bug in my back pocket w
 
 This exploit is absolutely not reliable, you need both the ion spray to work, and the UAF to land - but it can be leveraged to get root, if you've got time to kill! However, when it comes to MT6580, I think this is as 'modern' as it gets.
 
-<img src="images/blackview_v60.png" width="200">
+<img src="images/blackview_a60.png" width="200">
 
 ### Device Specifics According to Settings
 
@@ -162,4 +162,4 @@ This exploit is absolutely not reliable, you need both the ion spray to work, an
 
 ### Example Run
 
-<img src="images/blackview_v60.gif" width="720">
+<img src="images/blackview_a60.gif" width="720">
