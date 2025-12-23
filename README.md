@@ -137,3 +137,29 @@ This device runs a 64-bit Kirin 620 which also has the bug. This is basically th
 ### Example Run
 
 <img src="images/p8_lite.gif" width="720">
+
+## Frels - Blackview A60
+
+This is one of the more 'modern' MT6580-based devices, I wanted to see if it was easy enough to port these exploits to a later Android version (in this case, 8.1.0). Annoyingly, a decent amount has changed, kernel code is no longer writeable by the kernel (so no longer trivial to overwrite fop pointers in drivers), and userland memory is no longer accessible from kernel (or executable of course, but we already encountered that). 
+
+I ended up needing another bug, luckily I had a mediatek bug in my back pocket which lets me leak data from the kernel. This let me leak `/proc/driver/wmt_aee`'s `proc_dir_entry` address, letting me locate the fop handlers and therefore the address of the `open` handler, this gives me code execution. To get memory in a known place for the JOP-chain, I just allocated an ion buffer of about 500mb and filled it with the JOP-chain, due to lack of kASLR, I was able to just 'guess' a pointer that might have the data in it, and about 10% of the time it does!
+
+This exploit is absolutely not reliable, you need both the ion spray to work, and the UAF to land - but it can be leveraged to get root, if you've got time to kill! However, when it comes to MT6580, I think this is as 'modern' as it gets.
+
+<img src="images/blackview_v60.png" width="200">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model number | A60 |
+| Chipset | MT6580 |
+| GPU | ARM Mali-400 MP |
+| Android version | GO (8.1.0) |
+| Kernel version | 3.18.79+ |
+| Build number | `A60_W168_EEA_V1.0_20201123V23` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/blackview_v60.gif" width="720">

