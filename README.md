@@ -1,21 +1,22 @@
 <p align="center">
 
-  <img src="images/logo.jpg" width="250">
+  <img src="images/logo.jpg" width="300">
 
 </p>
 
-Exploits for a forever-day use-after-free in the Mali Utgard GPU kernel driver (so far only confirmed on ARM Mali-400 MP GPU in the MT6580). The bug it leverages was discovered on version *r6p2* of the driver, but it likely impacts later versions.
+Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driver (only devices that use the open-source ARM driver that used to be on their website). The bug it leverages was discovered on version *r6p2* of the driver (but impacts other versions as well).
 
 **Known vulnerable devices:**
-- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5)
+- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5. Blackview A60)
 - Kirin 620-based devices (Huawei P8 Lite)
 - Any device with a Mali Utgard GPU that uses the ARM driver
 
 **Known safe devices (tested):**
-- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc) - they don't appear to use the ARM driver
-- Amazon Kindle Fire 7th Gen (MT8127) - they also appear to use code different from the ARM code
+- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc) - Necessary ioctl commands don't exist
+- Amazon Kindle Fire 7th Gen (MT8127) - Necessary ioctl commands don't exist
+- Sony Xperia E4 - Necessary ioctl commands don't exist
 
-**Note:** To use these on other devices/kernels, compatiblity will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
+**Note:** To use these on other devices/kernels, compatibility will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
 
 ## Blogs
 
@@ -142,9 +143,11 @@ This device runs a 64-bit Kirin 620 which also has the bug. This is basically th
 
 This is one of the more 'modern' MT6580-based devices, I wanted to see if it was easy enough to port these exploits to a later Android version (in this case, 8.1.0). Annoyingly, a decent amount has changed, kernel code is no longer writeable by the kernel (so no longer trivial to overwrite fop pointers in drivers), and userland memory is no longer accessible from kernel (or executable of course, but we already encountered that). 
 
-I ended up needing another bug, luckily I had a mediatek bug in my back pocket which lets me leak data from the kernel. This let me leak `/proc/driver/wmt_aee`'s `proc_dir_entry` address, letting me locate the fop handlers and therefore the address of the `open` handler, this gives me code execution. To get memory in a known place for the JOP-chain, I just allocated an ion buffer of about 500mb and filled it with the JOP-chain, due to lack of kASLR, I was able to just 'guess' a pointer that might have the data in it, and about 10% of the time it does!
+There is also an annoying change in the driver on this device, they seem to have got the patch for CVE-2022-34830, which avoids a UAF, but luckily it is super easy to work around, you just have to do an extra allocation to render their check ineffective and hit this bug.
 
-This exploit is absolutely not reliable, you need both the ion spray to work, and the UAF to land - but it can be leveraged to get root, if you've got time to kill! However, when it comes to MT6580, I think this is as 'modern' as it gets.
+Despite this, I ended up needing another bug, luckily I had a Mediatek bug in my back pocket which lets me leak data from the kernel. This let me leak `/proc/driver/wmt_aee`'s `proc_dir_entry` address, letting me locate the fop handlers and therefore the address of the `open` handler, this gives me code execution. To get memory in a known place for the JOP-chain, I just allocated an ion buffer of about 500mb and filled it with the JOP-chain, due to lack of kASLR, I was able to just 'guess' a pointer that might have the controlled data in it, and most of the time it does!
+
+This exploit is kinda reliable, you need both the ion spray to work, and the UAF to land - but it can be leveraged to get root! However, when it comes to MT6580, I think this is as 'modern' as it gets.
 
 <img src="images/blackview_a60.png" width="200">
 
