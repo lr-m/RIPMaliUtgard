@@ -126,7 +126,7 @@ void important_ascii_art() {
     printf("██      ██   ██ ██      ██           ██ \n");
     printf("\033[38;5;57m");
     printf("██      ██   ██ ███████ ███████ ███████ \n\n");
-    printf("             Doogee X5 (v2)\n");
+    printf("               Doogee X5\n");
     printf("\n\033[0m");
 }
 

@@ -47,7 +47,7 @@ And `frels` for a 64-bit chipset (like the Kirin 620):
 
 This is an exploit I wrote for the T11 translator, it works by attacking the `sg_table` pointer in an `ion_buffer` that gets allocated in place of the free'd `mali_alloc` object. This lets you map arbitrary physical memory to userland and escalate privileges to root.
 
-<img src="images/translator.png" width="150">
+<img src="images/t11_translator.png" width="150">
 
 ### Device Specifics According to Settings
 
@@ -63,7 +63,7 @@ This is an exploit I wrote for the T11 translator, it works by attacking the `sg
 
 ### Example Run
 
-<img src="images/minnka.gif" width="720">
+<img src="images/minnka_t11_translator.gif" width="720">
 
 ## Frels - Soyes XS11
 
@@ -85,36 +85,7 @@ This is an exploit I wrote for the Soyes XS11, the `ion_buffer` method didn't wo
 
 ### Example Run
 
-<img src="images/frels.gif" width="720">
-
-## Frels - Doogee X5
-
-- *v1*: Very similar exploit to the XS11, but using `setxattr` for spraying fake `mali_alloc` objects. This device also has SELinux, but that is easily bypassed by setting the `enforcing` global in the JOP-chain. Quite unreliable and usually dies when you interact with the phone (if it even gets to root).
-- *v2*: Basically identical exploit to the Huawei P8 Lite, using `add_key` for the spray and fixing the freelist in the JOP-chain, much better reliability than v1.
-
-<img src="images/doogee_x5.png" width="250">
-
-### Device Specifics According to Settings
-
-| Property | Value |
-| - | - |
-| Model number | X5 |
-| Chipset | MT6580 |
-| GPU | ARM Mali-400 MP |
-| Android version | 6.0 |
-| Kernel version | 3.18.19 |
-| Build number | `DOOGEE-X5-Android6.0-20170904` |
-| SELinux | Yes |
-
-### Example Run
-
-#### v1
-
-<img src="images/frels_doogee_v1.gif" width="720">
-
-#### v2
-
-<img src="images/frels_doogee_v2.gif" width="720">
+<img src="images/frels_soyes_xs11.gif" width="720">
 
 ## Frels - Huawei P8 Lite
 
@@ -137,7 +108,29 @@ This device runs a 64-bit Kirin 620 which also has the bug. This is basically th
 
 ### Example Run
 
-<img src="images/p8_lite.gif" width="720">
+<img src="images/frels_p8_lite.gif" width="720">
+
+## Frels - Doogee X5
+
+Basically identical exploit to the Huawei P8 Lite, using `add_key` for the spray and fixing the freelist in the JOP-chain, decent reliability.
+
+<img src="images/doogee_x5.png" width="250">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model number | X5 |
+| Chipset | MT6580 |
+| GPU | ARM Mali-400 MP |
+| Android version | 6.0 |
+| Kernel version | 3.18.19 |
+| Build number | `DOOGEE-X5-Android6.0-20170904` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/frels_doogee_x5.gif" width="720">
 
 ## Frels - Blackview A60
 
