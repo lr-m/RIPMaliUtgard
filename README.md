@@ -136,9 +136,9 @@ Basically identical exploit to the Huawei P8 Lite, using `add_key` for the spray
 
 This is one of the more 'modern' MT6580-based devices, I wanted to see if it was easy enough to port these exploits to a later Android version (in this case, 8.1.0). Annoyingly, a decent amount has changed, kernel code is no longer writeable by the kernel (so no longer trivial to overwrite fop pointers in drivers), and userland memory is no longer accessible from kernel (or executable of course, but we already encountered that). 
 
-There is also an annoying change in the driver on this device, they seem to have got the patch for CVE-2022-34830, which avoids a UAF, but luckily it is super easy to work around, you just have to do an extra allocation to render their check ineffective and hit this bug.
+There is also an annoying change in the driver on this device, they seem to have patched some race condition by adding some extra checks/object tracking, which avoids a UAF, but luckily it is super easy to work around - you just have to do an extra allocation to render their check ineffective and hit this bug.
 
-Despite this, I ended up needing another bug, luckily I had a Mediatek bug in my back pocket which lets me leak data from the kernel. This let me leak `/proc/driver/wmt_aee`'s `proc_dir_entry` address, letting me locate the fop handlers and therefore the address of the `open` handler, this gives me code execution. To get memory in a known place for the JOP-chain, I just allocated an ion buffer of about 500mb and filled it with the JOP-chain, due to lack of kASLR, I was able to just 'guess' a pointer that might have the controlled data in it, and most of the time it does!
+Despite this, I ended up needing another bug as the existing 'patch function pointer in fop table' no longer works as kernel code isn't writeable. Luckily I had a Mediatek bug in my back pocket which lets me leak data from the kernel. This let me leak `/proc/driver/wmt_aee`'s `proc_dir_entry` address, letting me locate the fop handlers and therefore the address of the `open` handler, this gives me code execution. To get memory in a known place for the JOP-chain, I just allocated an ion buffer of about 500mb and filled it with the JOP-chain, due to lack of kASLR, I was able to just 'guess' a pointer that might have the controlled data in it, and most of the time it does!
 
 This exploit is kinda reliable, you need both the ion spray to work, and the UAF to land - but it can be leveraged to get root! However, when it comes to MT6580, I think this is as 'modern' as it gets.
 
@@ -158,4 +158,4 @@ This exploit is kinda reliable, you need both the ion spray to work, and the UAF
 
 ### Example Run
 
-<img src="images/blackview_a60.gif" width="720">
+<img src="images/frels_blackview_a60.gif" width="720">
