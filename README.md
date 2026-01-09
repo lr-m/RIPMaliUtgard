@@ -30,6 +30,8 @@ Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driv
 
 [[5] Should be an Easy Port, Right?](https://luke-m.xyz/translator/p6.md)
 
+[[6] Three More Exploits](https://luke-m.xyz/translator/p7.md)
+
 ## Building/Running
 
 Easiest with an Android NDK with pre-built toolchains, here is a `minnka` example for a 32-bit chipset (like the MT6580):
