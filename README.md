@@ -22,15 +22,15 @@ Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driv
 
 [[0] Dumping Filesystem + Unlocking ADB Shell](https://luke-m.xyz/translator/p1.md)
 
-[[1] Looking at Drivers, Rediscovering CVE-2022-34830](https://luke-m.xyz/translator/p2.md)
+[[1] Looking at Drivers, Finding Bugs](https://luke-m.xyz/translator/p2.md)
 
-[[2] Finding Other Bugs in mali Driver](https://luke-m.xyz/translator/p3.md)
+[[2] Two Drivers, One Exploit](https://luke-m.xyz/translator/p3.md)
 
-[[3] 2 Drivers, 1 Exploit](https://luke-m.xyz/translator/p4.md)
+[[3] There is Always a Better Way](https://luke-m.xyz/translator/p4.md)
 
-[[5] Should be an Easy Port, Right?](https://luke-m.xyz/translator/p6.md)
+[[4] Should be an Easy Port, Right?](https://luke-m.xyz/translator/p5.md)
 
-[[6] Three More Exploits](https://luke-m.xyz/translator/p7.md)
+[[5] Three More Exploits](https://luke-m.xyz/translator/p6.md)
 
 ## Building/Running
 
