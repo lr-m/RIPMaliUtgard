@@ -7,14 +7,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/mman.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <arpa/inet.h>
 #include <sys/syscall.h>
-#include <sys/xattr.h>
-#include <sys/msg.h>
-#include <sys/ipc.h>
 #include <pthread.h>
 #include <sched.h>
 
@@ -48,7 +41,6 @@
 // wmt_aee race configuration
 #define NUM_THREADS 2
 #define CHUNK_SIZE 0x1000
-#define SKIP_SIZE 0x0
 
 // Type definitions
 
@@ -500,7 +492,7 @@ int leak_pointer_from_wmt_aee(int fd, uint32_t *out_pointer)
         return -1;
     }
 
-    size_t skip_amount = SKIP_SIZE;
+    size_t skip_amount = 0;
     size_t total_skipped = 0;
     int chunk_num = 0;
 

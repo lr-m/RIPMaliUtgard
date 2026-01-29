@@ -7,8 +7,9 @@
 Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driver (only devices that use the open-source ARM driver that used to be on their website). The bug it leverages was discovered on version *r6p2* of the driver (but impacts other versions as well).
 
 **Known vulnerable devices:**
-- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5. Blackview A60)
+- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5, Blackview A60)
 - Kirin 620-based devices (Huawei P8 Lite)
+- Some MT8127 devices (Huawei T3 7.0)
 - Any device with a Mali Utgard GPU that uses the ARM driver
 
 **Known safe devices (tested):**
@@ -34,7 +35,7 @@ Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driv
 
 ## Building/Running
 
-Easiest with an Android NDK with pre-built toolchains, here is a `minnka` example for a 32-bit chipset (like the MT6580):
+Easiest with an Android NDK with pre-built toolchains, here is a `minnka` example for a 32-bit chipset (like the MT6580 or MT8127):
 - `./android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang minnka_t11_translator.c -o minnka -static`
 - `adb push minnka /data/local/tmp`
 - `adb shell /data/local/tmp/minnka`
@@ -93,7 +94,7 @@ This is an exploit I wrote for the Soyes XS11, the `ion_buffer` method didn't wo
 
 This device runs a 64-bit Kirin 620 which also has the bug. This is basically the same exploit as the XS11, but using `add_key` for spraying fake `mali_alloc` objects, and fixing the freelist in the JOP-chain. This device has SELinux, but that is easily bypassed by setting the `enforcing` global in the JOP-chain.
 
-<img src="images/p8_lite.png" width="150">
+<img src="images/huawei_p8_lite.png" width="150">
 
 ### Device Specifics According to Settings
 
@@ -111,6 +112,29 @@ This device runs a 64-bit Kirin 620 which also has the bug. This is basically th
 ### Example Run
 
 <img src="images/frels_p8_lite.gif" width="720">
+
+## Frels - Huawei T3 7.0
+
+Unlike the P8 Lite, this is based on a Mediatek MT8127 chipset. The exploit is practically identical to the P8 Lite exploit, just with a rewritten JOP-chain.
+
+<img src="images/huawei_t3_7.png" width="300">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model number | BG2-W09 |
+| Chipset | MT8127 |
+| GPU | ARM Mali-450 MP4 |
+| Android version | 6.0 |
+| EMUI version | 4.1 |
+| Kernel version | 3.18.22+ |
+| Build number | `BG2-W09C170B005` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/frels_t3_7.gif" width="720">
 
 ## Frels - Doogee X5
 
