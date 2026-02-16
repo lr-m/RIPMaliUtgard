@@ -4,20 +4,29 @@
 
 </p>
 
-Exploits for a forever-day use-after-free in the ARM Mali Utgard GPU kernel driver (only devices that use the open-source ARM driver that used to be on their website). The bug it leverages was discovered on version *r6p2* of the driver (but impacts other versions as well).
+A collection of exploits for devices running Utgard GPUs - based on two forever-day bugs:
+- A use-after-free on devices that use the open-source driver (*frels*/*minnka*)
+- Arbitrary physical memory mapping issue on older devices that use the older closed(?) source driver (*kort*)
 
-**Known vulnerable devices:**
-- MT6580-based devices (T11 translator, Soyes XS11, Doogee X5, Blackview A60)
-- Kirin 620-based devices (Huawei P8 Lite)
-- Some MT8127 devices (Huawei T3 7.0)
-- Any device with a Mali Utgard GPU that uses the ARM driver
+**Note:** To use these on other devices/kernels/builds, compatibility will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
 
-**Known safe devices (tested):**
-- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc) - Necessary ioctl commands don't exist
-- Amazon Kindle Fire 7th Gen (MT8127) - Necessary ioctl commands don't exist
-- Sony Xperia E4 - Necessary ioctl commands don't exist
+### Confirmed Vulnerable
 
-**Note:** To use these on other devices/kernels, compatibility will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
+| Device | Chipset | Exploit |
+|---------|---------|----------|
+| T11 translator | MT6580 | minnka |
+| Soyes XS11 | MT6580 | frels |
+| Doogee X5 | MT6580 | frels |
+| Blackview A60 | MT6580 | frels |
+| Huawei P8 Lite | Kirin 620 | frels |
+| Huawei T3 7.0 | MT8127 | frels |
+| Amazon Kindle Fire 7th Gen | MT8127 | kort |
+| Sony Xperia E4 | MT6582 | kort |
+
+### Probably Vulnerable
+
+- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc)
+- Anything else with a Mali Utgard GPU
 
 ## Blogs
 
@@ -185,3 +194,50 @@ This exploit is kinda reliable, you need both the ion spray to work, and the UAF
 ### Example Run
 
 <img src="images/frels_blackview_a60.gif" width="720">
+
+## Kort - Kindle Fire 7 (7th Gen)
+
+This device uses the driver that is very different to the open source driver. However, this driver has a nice bug that lets you map arbitrary physical pages into the GPU, including one containing kernel memory. This means we can map a known kernel page into the GPU, create a write-back PP job that will write the same value lots of times over a region, and use this as our write primitive to clobber a function pointer. This device doesn't have PXN either, so its a simple *ret2usr* to get root on this one.
+
+**Note**: I did have to root this one to debug the exploit, why block **/proc/last_kmsg** `</3`
+
+<img src="images/amazon_fire_7_7th.png" width="200">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model | austin |
+| Chipset | MT8127 |
+| GPU | ARM Mali-450 MP4 |
+| Android version | 5.1.1 |
+| Fire OS version | 5.7.1.0 |
+| Kernel version | 3.10.54+ |
+| Build number | `659664620` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/amazon_fire_7_7th.gif" width="720">
+
+## Kort - Sony Xperia E4
+
+Practically identical to the Kindle Fire 7 exploit, except this uses `wmt_dbg` instead of `wmt_aee` for the code execution trigger.
+
+<img src="images/sony_xperia_e4.png" width="200">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model | E2105 |
+| Chipset | MT6582 |
+| GPU | ARM Mali-400 MP |
+| Android version | 4.4.4 |
+| Kernel version | 3.4.67 |
+| Build number | `24.0.A.5.14` |
+| SELinux | Yes |
+
+### Example Run
+
+<img src="images/sony_xperia_e4.gif" width="720">
