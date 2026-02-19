@@ -6,7 +6,7 @@
 
 A collection of exploits for devices running Utgard GPUs - based on two forever-day bugs:
 - A use-after-free on devices that use the open-source driver (*frels*/*minnka*)
-- Arbitrary physical memory mapping to GPU (incl. kernel pages) + PP job for write
+- Arbitrary physical memory mapping to GPU (incl. kernel pages) + PP job for write (*kort*)
 
 **Note:** To use these on other devices/kernels/builds, compatibility will need to be checked as the bug may be present but a lot of work might be needed to get root, this collection of exploits should be a good reference to work with.
 
@@ -20,7 +20,8 @@ A collection of exploits for devices running Utgard GPUs - based on two forever-
 | Blackview A60 | MT6580 | frels |
 | Huawei P8 Lite | Kirin 620 | frels |
 | Huawei T3 7.0 | MT8127 | frels, kort |
-| Amazon Kindle Fire 7th Gen | MT8127 | kort |
+| Amazon Kindle Fire 7 7th Gen (`austin`) | MT8127 | kort |
+| Amazon Kindle Fire 7 5th Gen (`ford`) | MT8127 | kort |
 | Sony Xperia E4 | MT6582 | kort |
 
 ### Probably Vulnerable
@@ -270,6 +271,33 @@ This device uses the driver that is very different to the open source driver. Ho
 
 <img src="images/kort_amazon_fire_7_7th.gif" width="720">
 
+## Kindle Fire 7 (5th Gen)
+
+<img src="images/amazon_fire_7_5th.png" width="200">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model | ford |
+| Chipset | MT8127 |
+| GPU | ARM Mali-450 MP4 |
+| Android version | 5.1.1 |
+| Fire OS version | 5.3.6.4 |
+| Kernel version | 3.10.54+ |
+| Build number | `626533320` |
+| SELinux | Yes |
+
+### Kort
+
+Very similar to the 7th gen exploit, just using `wmt_dbg` as the trigger instead of `wmt_aee` (think it was overwriting `open` but no root = no debug on this thing).
+
+**Note**: Didn't have to root this one, it just worked!
+
+#### Example Run
+
+<img src="images/kort_amazon_fire_7_5th.gif" width="720">
+
 ## Sony Xperia E4
 
 <img src="images/sony_xperia_e4.png" width="200">
@@ -288,7 +316,7 @@ This device uses the driver that is very different to the open source driver. Ho
 
 ### Kort
 
-Practically identical to the Kindle Fire 7 exploit, except this uses `wmt_dbg` instead of `wmt_aee` for the code execution trigger.
+Practically identical to the Kindle Fire 7 exploit, except this uses `wmt_dbg` `write()` instead of `wmt_aee` `read()` for the code execution trigger.
 
 #### Example Run
 

