@@ -23,11 +23,7 @@ A collection of exploits for devices running Utgard GPUs - based on two forever-
 | Amazon Kindle Fire 7 7th Gen (`austin`) | MT8127 | kort |
 | Amazon Kindle Fire 7 5th Gen (`ford`) | MT8127 | kort |
 | Sony Xperia E4 | MT6582 | kort |
-
-### Probably Vulnerable
-
-- Samsung devices with a Mali Utgard GPU (S3, S3 Mini, S5 Mini, Star, etc)
-- Anything else with a Mali Utgard GPU
+| Samsung Galaxy S5 Mini | Exynos 3470 | kort |
 
 ## Blogs
 
@@ -64,7 +60,7 @@ And `frels` for a 64-bit chipset (like the Kirin 620):
 
 | Property | Value |
 | - | - |
-| Model number | T11/T16 |
+| Model number | `T11/T16` |
 | Chipset | MT6580 |
 | GPU | ARM Mali-400 MP |
 | Android version | 7.0 |
@@ -96,7 +92,7 @@ Initially discovered this issue on the older version of the driver (no minnka/fr
 
 | Property | Value |
 | - | - |
-| Model number | XS11 |
+| Model number | `XS11` |
 | Chipset | MT6580 |
 | GPU | ARM Mali-400 MP |
 | Android version | 6.0 |
@@ -130,7 +126,7 @@ Another nice and easy kort exploit (basically identical to the translator one), 
 
 | Property | Value |
 | - | - |
-| Model number | ALE-L21 |
+| Model number | `ALE-L21` |
 | Chipset | Kirin 620 |
 | GPU | ARM Mali-450 MP4 |
 | Android version | 6.0 |
@@ -155,7 +151,7 @@ This device runs a 64-bit Kirin 620 which also has the bug. This is basically th
 
 | Property | Value |
 | - | - |
-| Model number | BG2-W09 |
+| Model number | `BG2-W09` |
 | Chipset | MT8127 |
 | GPU | ARM Mali-450 MP4 |
 | Android version | 6.0 |
@@ -190,7 +186,7 @@ Another kort exploit, basically identical to all of the previous kort exploits w
 
 | Property | Value |
 | - | - |
-| Model number | X5 |
+| Model number | `X5` |
 | Chipset | MT6580 |
 | GPU | ARM Mali-400 MP |
 | Android version | 6.0 |
@@ -222,7 +218,7 @@ Identical to the previous kort exploits, except using a JOP-chain this time (thi
 
 | Property | Value |
 | - | - |
-| Model number | A60 |
+| Model number | `A60` |
 | Chipset | MT6580 |
 | GPU | ARM Mali-400 MP |
 | Android version | GO (8.1.0) |
@@ -252,7 +248,7 @@ This exploit is kinda reliable, you need both the ion spray to work, and the UAF
 
 | Property | Value |
 | - | - |
-| Model | austin |
+| Model | `austin` |
 | Chipset | MT8127 |
 | GPU | ARM Mali-450 MP4 |
 | Android version | 5.1.1 |
@@ -279,7 +275,7 @@ This device uses the driver that is very different to the open source driver. Ho
 
 | Property | Value |
 | - | - |
-| Model | ford |
+| Model | `ford` |
 | Chipset | MT8127 |
 | GPU | ARM Mali-450 MP4 |
 | Android version | 5.1.1 |
@@ -306,7 +302,7 @@ Very similar to the 7th gen exploit, just using `wmt_dbg` as the trigger instead
 
 | Property | Value |
 | - | - |
-| Model | E2105 |
+| Model | `E2105` |
 | Chipset | MT6582 |
 | GPU | ARM Mali-400 MP |
 | Android version | 4.4.4 |
@@ -321,3 +317,27 @@ Practically identical to the Kindle Fire 7 exploit, except this uses `wmt_dbg` `
 #### Example Run
 
 <img src="images/kort_sony_xperia_e4.gif" width="720">
+
+## Samsung Galaxy S5 Mini
+
+<img src="images/samsung_s5_mini.png" width="200">
+
+### Device Specifics According to Settings
+
+| Property | Value |
+| - | - |
+| Model | `SM-G800F` |
+| Chipset | Exynos 3470 |
+| GPU | ARM Mali-400 MP |
+| Android version | 6.0.1 |
+| Kernel version | 3.4.39 |
+| Build number | `MMBB29K.G800FXXU1CVG5` |
+| SELinux | Yes |
+
+### Kort
+
+Basically identical to every previous kort exploit but using a different `/proc` trigger, I also had some issues when trying to privesc to root (running `commit_creds(prepare_kernel_cred(NULL))`). I worked around it by patching my own cred and using that instead of NULL, which seemed to keep it happy and let me pop a shell!
+
+#### Example Run
+
+<img src="images/kort_samsung_s5_mini.gif" width="720">
