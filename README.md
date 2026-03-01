@@ -37,7 +37,9 @@ A collection of exploits for devices running Utgard GPUs - based on two forever-
 
 [[4] Should be an Easy Port, Right?](https://luke-m.xyz/translator/p5.md)
 
-[[5] Three More Exploits](https://luke-m.xyz/translator/p6.md)
+[[5] Four More Exploits](https://luke-m.xyz/translator/p6.md)
+
+[[6] Unfinished Business](https://luke-m.xyz/translator/p7.md)
 
 ## Building/Running
 
